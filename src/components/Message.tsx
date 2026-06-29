@@ -1,4 +1,5 @@
 import { type MatrixEvent } from "matrix-js-sdk";
+import { renderInline } from "../matrix/markdown";
 
 interface Props {
   event: MatrixEvent;
@@ -15,6 +16,21 @@ export default function Message({ event, myUserId }: Props) {
   // Render based on msgtype — text is the only one we care about for W7.
   const msgtype: string = content.msgtype ?? "m.text";
 
+  // For m.text, render inline markdown. For m.image, show a placeholder
+  // (full image support is W8). For anything else, show msgtype tag.
+  let bodyNode: React.ReactNode;
+  if (msgtype === "m.text") {
+    bodyNode = renderInline(body);
+  } else if (msgtype === "m.image") {
+    bodyNode = (
+      <span className="dim mono" style={{ fontSize: 12 }}>
+        [image: {content.filename ?? content.body ?? "?"}]
+      </span>
+    );
+  } else {
+    bodyNode = <span className="dim mono">[{msgtype}]</span>;
+  }
+
   return (
     <div style={{
       ...styles.row,
@@ -26,9 +42,7 @@ export default function Message({ event, myUserId }: Props) {
         color: isMe ? "#000" : "var(--text-0)",
       }}>
         {!isMe && <div style={styles.sender}>{sender.replace(/^@/, "").split(":")[0]}</div>}
-        <div style={styles.body}>
-          {msgtype === "m.text" ? body : <span className="dim mono">[{msgtype}]</span>}
-        </div>
+        <div style={styles.body}>{bodyNode}</div>
         <div style={{
           ...styles.status,
           color: isMe ? "rgba(0,0,0,0.5)" : "var(--text-2)",

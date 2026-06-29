@@ -82,6 +82,18 @@ input:focus, textarea:focus {
 .dim { color: var(--text-2); }
 .muted { color: var(--text-1); }
 
+/* Inline code in messages */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.bubble code {
+  background: rgba(0, 0, 0, 0.15);
+}
+
 /* Scrollbar (webkit) */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
