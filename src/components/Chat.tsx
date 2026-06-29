@@ -70,6 +70,9 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
         <button onClick={onBack} style={styles.back} className="mobile-only" aria-label="back">
           ←
         </button>
+        <button onClick={onBack} style={styles.desktopBack} className="desktop-only" aria-label="back to agents">
+          ← Agents
+        </button>
         <div style={styles.avatar}>{agent.displayName.charAt(0).toUpperCase()}</div>
         <div style={styles.headerMain}>
           <div style={styles.headerName}>{agent.displayName}</div>
@@ -123,6 +126,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 20,
     padding: 0,
     width: 32,
+  },
+  desktopBack: {
+    display: "none",
+    background: "transparent",
+    border: "1px solid var(--border)",
+    color: "var(--text-1)",
+    fontSize: 12,
+    padding: "4px 10px",
   },
   avatar: {
     width: 36,
