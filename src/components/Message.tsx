@@ -1,17 +1,74 @@
-import { type MatrixEvent } from "matrix-js-sdk";
+import { useState, useEffect } from "react";
+import { type MatrixEvent, type MatrixClient } from "matrix-js-sdk";
 import { renderInline } from "../matrix/markdown";
+import ReactionPicker from "./ReactionPicker";
 
 interface Props {
   event: MatrixEvent;
   myUserId: string;
+  client: MatrixClient;
+  roomId: string;
 }
 
-export default function Message({ event, myUserId }: Props) {
+export default function Message({ event, myUserId, client, roomId }: Props) {
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [reactions, setReactions] = useState<Map<string, string[]>>(new Map());
   const sender = event.getSender() ?? "?";
   const isMe = sender === myUserId;
   const content = event.getContent();
   const body: string = content.body ?? "";
   const status = event.status ?? "sent";
+  const eventId = event.getId();
+
+  // Load reactions for this message
+  useEffect(() => {
+    if (!eventId || !roomId) return;
+    
+    const room = client.getRoom(roomId);
+    if (!room) return;
+
+    const timeline = room.getLiveTimeline();
+    const events = timeline.getEvents();
+    
+    const reactionMap = new Map<string, string[]>();
+    
+    for (const ev of events) {
+      if (ev.getType() === "m.reaction") {
+        const evContent = ev.getContent();
+        const relatesTo = evContent["m.relates_to"];
+        if (relatesTo?.event_id === eventId && relatesTo?.rel_type === "m.annotation") {
+          const key = relatesTo.key;
+          const senderId = ev.getSender();
+          if (key && senderId) {
+            if (!reactionMap.has(key)) {
+              reactionMap.set(key, []);
+            }
+            const senders = reactionMap.get(key)!;
+            if (!senders.includes(senderId)) {
+              senders.push(senderId);
+            }
+          }
+        }
+      }
+    }
+    
+    setReactions(reactionMap);
+  }, [client, roomId, eventId]);
+
+  // Send reaction to this message
+  const sendReaction = async (emoji: string) => {
+    try {
+      await client.sendEvent(roomId, "m.reaction" as any, {
+        "m.relates_to": {
+          event_id: eventId,
+          key: emoji,
+          rel_type: "m.annotation",
+        },
+      });
+    } catch (err) {
+      console.error("Failed to send reaction:", err);
+    }
+  };
 
   // Render based on msgtype — text is the only one we care about for W7.
   const msgtype: string = content.msgtype ?? "m.text";
@@ -79,19 +136,49 @@ export default function Message({ event, myUserId }: Props) {
       ...styles.row,
       justifyContent: isMe ? "flex-end" : "flex-start",
     }}>
-      <div style={{
-        ...styles.bubble,
-        background: isMe ? "var(--accent)" : "var(--bg-2)",
-        color: isMe ? "#000" : "var(--text-0)",
-      }}>
-        {!isMe && <div style={styles.sender}>{sender.replace(/^@/, "").split(":")[0]}</div>}
-        <div style={styles.body}>{bodyNode}</div>
+      <div style={styles.messageContainer}>
         <div style={{
-          ...styles.status,
-          color: isMe ? "rgba(0,0,0,0.5)" : "var(--text-2)",
+          ...styles.bubble,
+          background: isMe ? "var(--accent)" : "var(--bg-2)",
+          color: isMe ? "#000" : "var(--text-0)",
         }}>
-          {status === "sending" ? "sending…" : status === "queued" ? "queued" : formatTime(event.getTs())}
+          {!isMe && <div style={styles.sender}>{sender.replace(/^@/, "").split(":")[0]}</div>}
+          <div style={styles.body}>{bodyNode}</div>
+          <div style={{
+            ...styles.status,
+            color: isMe ? "rgba(0,0,0,0.5)" : "var(--text-2)",
+          }}>
+            {status === "sending" ? "sending…" : status === "queued" ? "queued" : formatTime(event.getTs())}
+          </div>
         </div>
+        
+        {/* Reaction display */}
+        {Array.from(reactions.entries()).length > 0 && (
+          <div style={styles.reactions}>
+            {Array.from(reactions.entries()).map(([emoji, senders]) => (
+              <span key={emoji} style={styles.reactionBadge}>
+                {emoji} {senders.length}
+              </span>
+            ))}
+          </div>
+        )}
+        
+        {/* Reaction button */}
+        <button
+          style={styles.reactButton}
+          onClick={() => setShowReactionPicker(true)}
+          title="Add reaction"
+        >
+          +😊
+        </button>
+        
+        {/* Reaction picker modal */}
+        {showReactionPicker && (
+          <ReactionPicker
+            onReact={sendReaction}
+            onClose={() => setShowReactionPicker(false)}
+          />
+        )}
       </div>
     </div>
   );
@@ -112,8 +199,11 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     padding: "2px 16px",
   },
-  bubble: {
+  messageContainer: {
+    position: "relative",
     maxWidth: "70%",
+  },
+  bubble: {
     padding: "8px 12px",
     borderRadius: 12,
     wordBreak: "break-word",
@@ -133,6 +223,32 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 10,
     marginTop: 4,
     textAlign: "right",
+  },
+  reactions: {
+    display: "flex",
+    gap: 4,
+    marginTop: 4,
+    flexWrap: "wrap",
+  },
+  reactionBadge: {
+    fontSize: 12,
+    padding: "2px 6px",
+    borderRadius: 10,
+    background: "var(--bg-3)",
+    color: "var(--text-0)",
+  },
+  reactButton: {
+    position: "absolute",
+    top: 4,
+    right: -32,
+    fontSize: 14,
+    padding: "2px 6px",
+    borderRadius: 6,
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    opacity: 0.3,
+    transition: "opacity 0.2s",
   },
   audioWrap: {
     display: "flex",

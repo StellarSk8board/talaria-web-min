@@ -189,7 +189,7 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
             </p>
           </div>
         ) : (
-          events.map((ev) => <Message key={ev.getId() ?? ev.getTxnId() ?? Math.random()} event={ev} myUserId={myUserId} />)
+          events.map((ev) => <Message key={ev.getId() ?? ev.getTxnId() ?? Math.random()} event={ev} myUserId={myUserId} client={client} roomId={room?.roomId ?? ""} />)
         )}
       </div>
 
