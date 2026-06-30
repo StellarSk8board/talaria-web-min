@@ -8,10 +8,15 @@ interface UnreadState {
 /**
  * Track unread message counts per room.
  */
-export function useUnreadCounts(client: MatrixClient, rooms: Room[]): UnreadState {
+export function useUnreadCounts(client: MatrixClient | null, rooms: Room[]): UnreadState {
   const [unread, setUnread] = useState<UnreadState>({});
 
   useEffect(() => {
+    if (!client) {
+      setUnread({});
+      return;
+    }
+
     const counts: UnreadState = {};
 
     // Initialize counts for all rooms

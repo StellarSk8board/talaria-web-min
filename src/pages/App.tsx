@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { restoreSession, startClient, clearStoredSession } from "../matrix/client";
 import { fetchAgents, type Agent } from "../matrix/agents";
 import { getVerifyStatus, type VerifyStatus } from "../matrix/verify";
+import { useUnreadCounts } from "../matrix/unread";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import Sidebar from "../components/Sidebar";
 import Chat from "../components/Chat";
@@ -24,6 +25,9 @@ export default function App() {
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>("unknown");
+
+  // Track unread message counts
+  const unreadCounts = useUnreadCounts(client, Array.from(rooms.values()));
 
   // ---- load agents (can be called again for retry/reload) ----
   const loadAgents = useCallback(() => {
@@ -190,6 +194,7 @@ export default function App() {
         groupRooms={groupRooms}
         verifyStatus={verifyStatus}
         onShowVerification={() => setShowVerification(true)}
+        unreadCounts={unreadCounts}
       />
       <main style={styles.main}>
         {selectedAgent ? (

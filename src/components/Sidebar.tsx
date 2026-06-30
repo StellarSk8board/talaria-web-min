@@ -20,11 +20,12 @@ interface Props {
   groupRooms: Room[];
   verifyStatus: VerifyStatus;
   onShowVerification: () => void;
+  unreadCounts: Record<string, number>;
 }
 
 export default function Sidebar({
   agents, rooms, myUserId, selectedAgent, selectedRoom, onSelect, onSelectRoom, findDmRoom, onSignOut, open,
-  onReloadAgents, agentsLoading, agentError, onNewGroup, groupRooms, verifyStatus, onShowVerification,
+  onReloadAgents, agentsLoading, agentError, onNewGroup, groupRooms, verifyStatus, onShowVerification, unreadCounts,
 }: Props) {
   return (
     <aside style={{ ...styles.aside, transform: open ? "translateX(0)" : "translateX(-100%)" }}>
@@ -45,6 +46,7 @@ export default function Sidebar({
             const isSelected = selectedAgent?.userId === a.userId && !selectedRoom;
             const last = room?.getLastLiveEvent();
             const preview = last?.getContent()?.body as string | undefined;
+            const unreadCount = room ? (unreadCounts[room.roomId] || 0) : 0;
             return (
               <li
                 key={a.userId}
@@ -67,6 +69,9 @@ export default function Sidebar({
                     }
                   </div>
                 </div>
+                {unreadCount > 0 && (
+                  <div style={styles.unreadBadge}>{unreadCount}</div>
+                )}
               </li>
             );
           })}
@@ -311,6 +316,17 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     fontWeight: 700,
     fontSize: 18,
+    flexShrink: 0,
+  },
+  unreadBadge: {
+    background: "var(--accent)",
+    color: "white",
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "2px 6px",
+    borderRadius: 10,
+    minWidth: 18,
+    textAlign: "center",
     flexShrink: 0,
   },
 };
