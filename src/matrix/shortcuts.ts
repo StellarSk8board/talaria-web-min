@@ -6,6 +6,7 @@ interface ShortcutHandlers {
   onOpenChat?: () => void;
   onBack?: () => void;
   onFocusCompose?: () => void;
+  onSearch?: () => void;
 }
 
 /**
@@ -52,6 +53,12 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
         case "/":
           e.preventDefault();
           handlers.onFocusCompose?.();
+          break;
+        case "k":
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            handlers.onSearch?.();
+          }
           break;
       }
     };

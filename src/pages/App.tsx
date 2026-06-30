@@ -10,6 +10,7 @@ import Sidebar from "../components/Sidebar";
 import Chat from "../components/Chat";
 import NewGroupModal from "../components/NewGroupModal";
 import Verification from "../components/Verification";
+import SearchModal from "../components/SearchModal";
 
 export default function App() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function App() {
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>("unknown");
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   // Track unread message counts
   const unreadCounts = useUnreadCounts(client, Array.from(rooms.values()));
@@ -65,6 +67,9 @@ export default function App() {
     onFocusCompose: () => {
       const compose = document.querySelector('textarea[placeholder]') as HTMLTextAreaElement;
       if (compose) compose.focus();
+    },
+    onSearch: () => {
+      setShowSearchModal(true);
     },
   });
 
@@ -292,6 +297,17 @@ export default function App() {
         <Verification
           client={client}
           onClose={() => setShowVerification(false)}
+        />
+      )}
+      {showSearchModal && client && (
+        <SearchModal
+          client={client}
+          onSelectResult={(room) => {
+            setSelectedRoom(room);
+            setSelectedAgent(null);
+            setSidebarOpen(false);
+          }}
+          onClose={() => setShowSearchModal(false)}
         />
       )}
     </div>
