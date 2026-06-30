@@ -3,6 +3,7 @@ import { RoomEvent, MsgType, type MatrixClient, type Room, type MatrixEvent } fr
 import { type Agent } from "../matrix/agents";
 import Message from "./Message";
 import Compose from "./Compose";
+import TypingIndicator from "./TypingIndicator";
 
 interface Props {
   client: MatrixClient;
@@ -184,7 +185,16 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
         )}
       </div>
 
-      <Compose onSend={send} onSendAudio={sendAudio} onSendFile={sendFile} disabled={!room && !agent} />
+      <TypingIndicator client={client} room={room} />
+
+      <Compose 
+        onSend={send} 
+        onSendAudio={sendAudio} 
+        onSendFile={sendFile} 
+        disabled={!room && !agent}
+        client={client}
+        roomId={room?.roomId}
+      />
     </div>
   );
 }

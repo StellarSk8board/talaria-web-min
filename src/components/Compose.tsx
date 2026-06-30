@@ -1,13 +1,17 @@
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { sendTypingNotification } from "../matrix/typing";
+import type { MatrixClient } from "matrix-js-sdk";
 
 interface Props {
   onSend: (body: string) => Promise<void> | void;
   onSendAudio?: (blob: Blob) => Promise<void> | void;
   onSendFile?: (file: File) => Promise<void> | void;
   disabled?: boolean;
+  client?: MatrixClient;
+  roomId?: string;
 }
 
-export default function Compose({ onSend, onSendAudio, onSendFile, disabled }: Props) {
+export default function Compose({ onSend, onSendAudio, onSendFile, disabled, client, roomId }: Props) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -15,6 +19,7 @@ export default function Compose({ onSend, onSendAudio, onSendFile, disabled }: P
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const submit = async () => {
     const body = text.trim();
@@ -41,7 +46,26 @@ export default function Compose({ onSend, onSendAudio, onSendFile, disabled }: P
     const ta = e.target;
     ta.style.height = "auto";
     ta.style.height = Math.min(ta.scrollHeight, 144) + "px";
+
+    // Send typing notification
+    if (client && roomId && e.target.value.trim()) {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      sendTypingNotification(client, roomId);
+      typingTimeoutRef.current = setTimeout(() => {
+        typingTimeoutRef.current = null;
+      }, 3000);
+    }
   };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const startRecording = async () => {
     if (!onSendAudio || recording) return;
