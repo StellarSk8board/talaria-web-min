@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { restoreSession, startClient, clearStoredSession } from "../matrix/client";
 import { fetchAgents, type Agent } from "../matrix/agents";
@@ -12,10 +12,26 @@ export default function App() {
   const [userId, setUserId] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Map<string, Room>>(new Map());
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
+  const [agentError, setAgentError] = useState<string | null>(null);
+
+  // ---- load agents (can be called again for retry/reload) ----
+  const loadAgents = useCallback(() => {
+    setAgentsLoading(true);
+    setAgentError(null);
+    fetchAgents()
+      .then((registry) => {
+        setAgents(registry.agents);
+        setAgentsLoading(false);
+      })
+      .catch((err) => {
+        setAgentError(err.message);
+        setAgentsLoading(false);
+      });
+  }, []);
 
   // ---- bootstrap: restore session, start client, wait for sync ----
   useEffect(() => {
@@ -27,15 +43,7 @@ export default function App() {
     setUserId(restored.userId);
 
     // Load agent registry
-    fetchAgents()
-      .then((registry) => {
-        setAgents(registry.agents);
-        setAgentsLoading(false);
-      })
-      .catch((err) => {
-        setError(`Failed to load agents: ${err.message}`);
-        setAgentsLoading(false);
-      });
+    loadAgents();
 
     let cancelled = false;
     startClient(restored.client)
@@ -65,7 +73,7 @@ export default function App() {
       .catch((err) => {
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : String(err);
-        setError(msg);
+        setSyncError(msg);
         if (/token|forbidden|401|403|M_UNKNOWN_TOKEN/i.test(msg)) {
           clearStoredSession();
           navigate("/login", { replace: true });
@@ -73,14 +81,14 @@ export default function App() {
       });
 
     return () => { cancelled = true; };
-  }, [navigate]);
+  }, [navigate, loadAgents]);
 
-  if (error) {
+  if (syncError) {
     return (
       <div style={styles.center}>
         <div style={styles.errorCard}>
           <h3>Sync error</h3>
-          <p className="mono" style={{ fontSize: 12 }}>{error}</p>
+          <p className="mono" style={{ fontSize: 12 }}>{syncError}</p>
           <button onClick={() => { clearStoredSession(); navigate("/login", { replace: true }); }}>
             Back to sign in
           </button>
@@ -89,12 +97,10 @@ export default function App() {
     );
   }
 
-  if (!client || !userId || agentsLoading) {
+  if (!client || !userId) {
     return (
       <div style={styles.center}>
-        <p className="dim">
-          {agentsLoading ? "Loading agents…" : "Connecting…"}
-        </p>
+        <p className="dim">Connecting…</p>
       </div>
     );
   }
@@ -121,6 +127,9 @@ export default function App() {
         findDmRoom={findDmRoom}
         onSignOut={() => { clearStoredSession(); navigate("/login", { replace: true }); }}
         open={sidebarOpen}
+        onReloadAgents={loadAgents}
+        agentsLoading={agentsLoading}
+        agentError={agentError}
       />
       <main style={styles.main}>
         {selectedAgent ? (
@@ -133,10 +142,29 @@ export default function App() {
           />
         ) : (
           <div style={styles.empty}>
-            <p className="dim">Select an agent to start talking.</p>
-            <p className="dim mono" style={{ fontSize: 11, marginTop: 8 }}>
-              {agents.length} agents configured
-            </p>
+            {agentsLoading ? (
+              <p className="dim">Loading agents…</p>
+            ) : agentError ? (
+              <>
+                <p className="dim" style={{ color: "var(--danger)" }}>Failed to load agents</p>
+                <p className="dim mono" style={{ fontSize: 11, marginTop: 8 }}>{agentError}</p>
+                <button onClick={loadAgents} style={{ marginTop: 12 }}>Retry</button>
+              </>
+            ) : agents.length === 0 ? (
+              <>
+                <p className="dim">No agents configured</p>
+                <p className="dim mono" style={{ fontSize: 11, marginTop: 8 }}>
+                  Edit <code>public/agents.json</code> to add agents
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="dim">Select an agent to start talking.</p>
+                <p className="dim mono" style={{ fontSize: 11, marginTop: 8 }}>
+                  {agents.length} agents configured
+                </p>
+              </>
+            )}
           </div>
         )}
       </main>

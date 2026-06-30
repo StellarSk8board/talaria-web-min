@@ -10,10 +10,14 @@ interface Props {
   findDmRoom: (userId: string) => Room | null;
   onSignOut: () => void;
   open: boolean;
+  onReloadAgents: () => void;
+  agentsLoading: boolean;
+  agentError: string | null;
 }
 
 export default function Sidebar({
   agents, rooms, myUserId, selectedAgent, onSelect, findDmRoom, onSignOut, open,
+  onReloadAgents, agentsLoading, agentError,
 }: Props) {
   return (
     <aside style={{ ...styles.aside, transform: open ? "translateX(0)" : "translateX(-100%)" }}>
@@ -63,12 +67,29 @@ export default function Sidebar({
       </div>
 
       <div style={styles.footer}>
-        <div className="dim mono" style={{ fontSize: 11 }}>
-          {rooms.size} rooms · {agents.length} agents
+        <div style={styles.footerLeft}>
+          <div className="dim mono" style={{ fontSize: 11 }}>
+            {rooms.size} rooms · {agents.length} agents
+          </div>
+          {agentError && (
+            <div className="dim mono" style={{ fontSize: 10, color: "var(--danger)", marginTop: 2 }}>
+              Agent load failed
+            </div>
+          )}
         </div>
-        <button onClick={onSignOut} style={{ fontSize: 11, padding: "4px 8px" }}>
-          Sign out
-        </button>
+        <div style={styles.footerRight}>
+          <button
+            onClick={onReloadAgents}
+            disabled={agentsLoading}
+            style={{ fontSize: 11, padding: "4px 8px" }}
+            title="Reload agent list"
+          >
+            {agentsLoading ? "…" : "↻"}
+          </button>
+          <button onClick={onSignOut} style={{ fontSize: 11, padding: "4px 8px" }}>
+            Sign out
+          </button>
+        </div>
       </div>
     </aside>
   );
@@ -178,8 +199,17 @@ const styles: Record<string, React.CSSProperties> = {
     borderTop: "1px solid var(--border)",
     padding: "10px 16px",
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 8,
+  },
+  footerLeft: {
+    flex: 1,
+    minWidth: 0,
+  },
+  footerRight: {
+    display: "flex",
+    gap: 6,
+    flexShrink: 0,
   },
 };
