@@ -1,0 +1,11 @@
+{
+  "agents": [
+    { "userId": "@karn:talaria.my",   "displayName": "Karn",   "role": "Builder / orchestrator" },
+    { "userId": "@bob:talaria.my",    "displayName": "Bob",    "role": "Thinker / coordinator" },
+    { "userId": "@corso:talaria.my",  "displayName": "Corso",  "role": "Librarian / indexer" },
+    { "userId": "@ordis:talaria.my",  "displayName": "Ordis",  "role": "Operator / devops" },
+    { "userId": "@rhinox:talaria.my", "displayName": "Rhinox", "role": "Monitor / watchdog" }
+  ],
+  "blairUserId": "@blair:talaria.my",
+  "reservedSlots": 7
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { restoreSession, startClient, clearStoredSession } from "../matrix/client";
-import { AGENTS, type Agent } from "../matrix/agents";
+import { fetchAgents, type Agent } from "../matrix/agents";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import Sidebar from "../components/Sidebar";
 import Chat from "../components/Chat";
@@ -14,6 +14,8 @@ export default function App() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
 
   // ---- bootstrap: restore session, start client, wait for sync ----
   useEffect(() => {
@@ -23,6 +25,17 @@ export default function App() {
       return;
     }
     setUserId(restored.userId);
+
+    // Load agent registry
+    fetchAgents()
+      .then((registry) => {
+        setAgents(registry.agents);
+        setAgentsLoading(false);
+      })
+      .catch((err) => {
+        setError(`Failed to load agents: ${err.message}`);
+        setAgentsLoading(false);
+      });
 
     let cancelled = false;
     startClient(restored.client)
@@ -76,10 +89,12 @@ export default function App() {
     );
   }
 
-  if (!client || !userId) {
+  if (!client || !userId || agentsLoading) {
     return (
       <div style={styles.center}>
-        <p className="dim">Connecting…</p>
+        <p className="dim">
+          {agentsLoading ? "Loading agents…" : "Connecting…"}
+        </p>
       </div>
     );
   }
@@ -98,7 +113,7 @@ export default function App() {
   return (
     <div style={styles.shell}>
       <Sidebar
-        agents={AGENTS}
+        agents={agents}
         rooms={rooms}
         myUserId={userId}
         selectedAgent={selectedAgent}
@@ -120,7 +135,7 @@ export default function App() {
           <div style={styles.empty}>
             <p className="dim">Select an agent to start talking.</p>
             <p className="dim mono" style={{ fontSize: 11, marginTop: 8 }}>
-              {AGENTS.length} agents configured
+              {agents.length} agents configured
             </p>
           </div>
         )}

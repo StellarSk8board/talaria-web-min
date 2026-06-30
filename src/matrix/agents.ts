@@ -1,9 +1,11 @@
 /**
- * Talaria agent directory.
+ * Talaria agent directory — auto-discovery.
  *
- * W7-2 ships this as a static list (W7 ships faster, no `/joined_agents`
- * discovery round-trip needed). v2: read from the runtime's
- * `GET /admin/agents` or from a /sync state-event the runtime publishes.
+ * W8: agents are loaded from `/agents.json` (served by Vite dev server or
+ * static host). To add a new agent, edit that file — no code change needed.
+ *
+ * v2: replace the fetch with a call to the runtime's `GET /admin/agents`
+ * endpoint, or read from a /sync state-event the runtime publishes.
  */
 
 export interface Agent {
@@ -15,20 +17,33 @@ export interface Agent {
   role: string;
 }
 
-/**
- * Blair's AI agent fleet — currently 5 wired on eyops, room for 7 more.
- * Edit this list as agents are onboarded via `talaria agents add`.
- */
-export const AGENTS: Agent[] = [
-  { userId: "@karn:talaria.my",   displayName: "Karn",   role: "Builder / orchestrator" },
-  { userId: "@bob:talaria.my",    displayName: "Bob",    role: "Thinker / coordinator" },
-  { userId: "@corso:talaria.my",  displayName: "Corso",  role: "Librarian / indexer" },
-  { userId: "@ordis:talaria.my",  displayName: "Ordis",  role: "Operator / devops" },
-  { userId: "@rhinox:talaria.my", displayName: "Rhinox", role: "Monitor / watchdog" },
-];
+export interface AgentRegistry {
+  agents: Agent[];
+  blairUserId: string;
+  reservedSlots: number;
+}
 
-/** The 7 agent slots reserved for future onboarding. */
-export const AGENT_SLOTS_RESERVED = 7;
+/**
+ * Fetch the agent registry from the local JSON endpoint.
+ * Throws on network error or malformed response.
+ */
+export async function fetchAgents(): Promise<AgentRegistry> {
+  const res = await fetch("/agents.json");
+  if (!res.ok) {
+    throw new Error(`Failed to load agents: ${res.status} ${res.statusText}`);
+  }
+  const data = (await res.json()) as AgentRegistry;
+  if (!Array.isArray(data.agents) || data.agents.length === 0) {
+    throw new Error("Agent registry is empty or malformed");
+  }
+  // Validate each agent has required fields
+  for (const a of data.agents) {
+    if (!a.userId || !a.displayName) {
+      throw new Error(`Agent missing userId or displayName: ${JSON.stringify(a)}`);
+    }
+  }
+  return data;
+}
 
 /** Blair's own user_id — used for sender matching, "sent vs received". */
 export const BLAIR_USER_ID = "@blair:talaria.my";
