@@ -4,6 +4,7 @@ import { type Agent } from "../matrix/agents";
 import Message from "./Message";
 import Compose from "./Compose";
 import TypingIndicator from "./TypingIndicator";
+import { usePresence } from "../matrix/presence";
 
 interface Props {
   client: MatrixClient;
@@ -16,6 +17,7 @@ interface Props {
 export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
   const [events, setEvents] = useState<MatrixEvent[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const presence = usePresence(client, room);
 
   // Refresh timeline when room changes.
   useEffect(() => {
@@ -149,7 +151,13 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
             <div style={styles.avatar}>{agent.displayName.charAt(0).toUpperCase()}</div>
             <div style={styles.headerMain}>
               <div style={styles.headerName}>{agent.displayName}</div>
-              <div className="dim" style={styles.headerSub}>{agent.role}</div>
+              <div className="dim" style={styles.headerSub}>
+                <span style={{
+                  ...styles.statusDot,
+                  backgroundColor: presence[agent.userId] === "online" ? "var(--online)" : "var(--offline)"
+                }} />
+                {presence[agent.userId] === "online" ? "Online" : "Offline"}
+              </div>
             </div>
             <div className="mono dim" style={styles.headerUserId} title={agent.userId}>
               {agent.userId.replace(/^@/, "").split(":")[0]}@{agent.userId.split(":")[1]}
@@ -252,6 +260,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerSub: {
     fontSize: 12,
+  },
+  statusDot: {
+    display: "inline-block",
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    marginRight: 6,
   },
   headerUserId: {
     fontSize: 11,
