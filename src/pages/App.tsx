@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { restoreSession, startClient, clearStoredSession } from "../matrix/client";
 import { fetchAgents, type Agent } from "../matrix/agents";
 import { getVerifyStatus, type VerifyStatus } from "../matrix/verify";
 import { useUnreadCounts } from "../matrix/unread";
+import { useKeyboardShortcuts } from "../matrix/shortcuts";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import Sidebar from "../components/Sidebar";
 import Chat from "../components/Chat";
@@ -28,6 +29,44 @@ export default function App() {
 
   // Track unread message counts
   const unreadCounts = useUnreadCounts(client, Array.from(rooms.values()));
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onNavigateUp: () => {
+      if (selectedAgent) {
+        const idx = agents.findIndex(a => a.userId === selectedAgent.userId);
+        if (idx > 0) setSelectedAgent(agents[idx - 1]);
+      } else if (agents.length > 0) {
+        setSelectedAgent(agents[agents.length - 1]);
+      }
+    },
+    onNavigateDown: () => {
+      if (selectedAgent) {
+        const idx = agents.findIndex(a => a.userId === selectedAgent.userId);
+        if (idx < agents.length - 1) setSelectedAgent(agents[idx + 1]);
+      } else if (agents.length > 0) {
+        setSelectedAgent(agents[0]);
+      }
+    },
+    onOpenChat: () => {
+      if (selectedAgent && !selectedRoom) {
+        setSidebarOpen(false);
+      }
+    },
+    onBack: () => {
+      if (selectedRoom) {
+        setSelectedRoom(null);
+        setSidebarOpen(true);
+      } else if (selectedAgent) {
+        setSelectedAgent(null);
+        setSidebarOpen(true);
+      }
+    },
+    onFocusCompose: () => {
+      const compose = document.querySelector('textarea[placeholder]') as HTMLTextAreaElement;
+      if (compose) compose.focus();
+    },
+  });
 
   // ---- load agents (can be called again for retry/reload) ----
   const loadAgents = useCallback(() => {
