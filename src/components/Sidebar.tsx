@@ -6,18 +6,22 @@ interface Props {
   rooms: Map<string, Room>;
   myUserId: string;
   selectedAgent: Agent | null;
+  selectedRoom: Room | null;
   onSelect: (a: Agent) => void;
+  onSelectRoom: (r: Room) => void;
   findDmRoom: (userId: string) => Room | null;
   onSignOut: () => void;
   open: boolean;
   onReloadAgents: () => void;
   agentsLoading: boolean;
   agentError: string | null;
+  onNewGroup: () => void;
+  groupRooms: Room[];
 }
 
 export default function Sidebar({
-  agents, rooms, myUserId, selectedAgent, onSelect, findDmRoom, onSignOut, open,
-  onReloadAgents, agentsLoading, agentError,
+  agents, rooms, myUserId, selectedAgent, selectedRoom, onSelect, onSelectRoom, findDmRoom, onSignOut, open,
+  onReloadAgents, agentsLoading, agentError, onNewGroup, groupRooms,
 }: Props) {
   return (
     <aside style={{ ...styles.aside, transform: open ? "translateX(0)" : "translateX(-100%)" }}>
@@ -35,7 +39,7 @@ export default function Sidebar({
         <ul style={styles.list}>
           {agents.map((a) => {
             const room = findDmRoom(a.userId);
-            const isSelected = selectedAgent?.userId === a.userId;
+            const isSelected = selectedAgent?.userId === a.userId && !selectedRoom;
             const last = room?.getLastLiveEvent();
             const preview = last?.getContent()?.body as string | undefined;
             return (
@@ -64,6 +68,55 @@ export default function Sidebar({
             );
           })}
         </ul>
+
+        <div style={{ ...styles.sectionLabel, marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>Groups</span>
+          <button
+            onClick={onNewGroup}
+            style={styles.newGroupBtn}
+            title="Create new group"
+          >
+            +
+          </button>
+        </div>
+        {groupRooms.length === 0 ? (
+          <div className="dim" style={styles.emptyGroups}>
+            No groups yet
+          </div>
+        ) : (
+          <ul style={styles.list}>
+            {groupRooms.map((r) => {
+              const name = r.name || "Unnamed Group";
+              const isSelected = selectedRoom?.roomId === r.roomId;
+              const last = r.getLastLiveEvent();
+              const preview = last?.getContent()?.body as string | undefined;
+              const memberCount = r.getJoinedMemberCount();
+              return (
+                <li
+                  key={r.roomId}
+                  onClick={() => onSelectRoom(r)}
+                  style={{
+                    ...styles.row,
+                    background: isSelected ? "var(--bg-3)" : "transparent",
+                  }}
+                >
+                  <div style={styles.groupAvatar}>#</div>
+                  <div style={styles.rowMain}>
+                    <div style={styles.rowTop}>
+                      <span style={styles.rowName}>{name}</span>
+                    </div>
+                    <div style={styles.rowSub}>
+                      {preview
+                        ? <span className="dim">{truncate(preview, 40)}</span>
+                        : <span className="dim" style={{ fontStyle: "italic" }}>{memberCount} members</span>
+                      }
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <div style={styles.footer}>
@@ -210,6 +263,39 @@ const styles: Record<string, React.CSSProperties> = {
   footerRight: {
     display: "flex",
     gap: 6,
+    flexShrink: 0,
+  },
+  newGroup_btn: {
+    background: "transparent",
+    border: "1px solid var(--border)",
+    color: "var(--text-1)",
+    fontSize: 14,
+    fontWeight: 600,
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+  },
+  emptyGroups: {
+    padding: "8px 16px",
+    fontSize: 12,
+    fontStyle: "italic",
+  },
+  groupAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    background: "var(--accent)",
+    color: "white",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 700,
+    fontSize: 18,
     flexShrink: 0,
   },
 };

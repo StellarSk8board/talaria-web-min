@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { restoreSession, startClient, clearStoredSession } from "../matrix/client";
 import { fetchAgents, type Agent } from "../matrix/agents";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import Sidebar from "../components/Sidebar";
 import Chat from "../components/Chat";
+import NewGroupModal from "../components/NewGroupModal";
 
 export default function App() {
   const navigate = useNavigate();
@@ -12,11 +13,13 @@ export default function App() {
   const [userId, setUserId] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Map<string, Room>>(new Map());
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false);
 
   // ---- load agents (can be called again for retry/reload) ----
   const loadAgents = useCallback(() => {
@@ -116,6 +119,50 @@ export default function App() {
     return null;
   }
 
+  // ---- compute group rooms (non-DM rooms with 3+ members) ----
+  const groupRooms = useMemo(() => {
+    const groups: Room[] = [];
+    for (const r of rooms.values()) {
+      const meJoined = r.getMember(userId!)?.membership === "join";
+      if (!meJoined) continue;
+      const memberCount = r.getJoinedMemberCount();
+      if (memberCount >= 3 && !r.getDMInviter()) {
+        groups.push(r);
+      }
+    }
+    return groups.sort((a, b) => {
+      const aLast = a.getLastLiveEvent()?.getTs() ?? 0;
+      const bLast = b.getLastLiveEvent()?.getTs() ?? 0;
+      return bLast - aLast;
+    });
+  }, [rooms, userId]);
+
+  // ---- create a new group room ----
+  async function createGroup(name: string, selectedAgents: Agent[]) {
+    if (!client) return;
+    try {
+      const invite = selectedAgents.map((a) => a.userId);
+      await client.createRoom({
+        name,
+        invite,
+        preset: "private_chat" as any,
+        is_direct: false,
+      });
+      // The room will arrive via the "Room" event listener
+      setShowNewGroupModal(false);
+    } catch (err) {
+      console.error("Failed to create group:", err);
+      alert("Failed to create group: " + (err instanceof Error ? err.message : String(err)));
+    }
+  }
+
+  // ---- handle selecting a group room ----
+  function handleSelectRoom(room: Room) {
+    setSelectedAgent(null);
+    setSelectedRoom(room);
+    setSidebarOpen(false);
+  }
+
   return (
     <div style={styles.shell}>
       <Sidebar
@@ -123,13 +170,17 @@ export default function App() {
         rooms={rooms}
         myUserId={userId}
         selectedAgent={selectedAgent}
-        onSelect={(a) => { setSelectedAgent(a); setSidebarOpen(false); }}
+        selectedRoom={selectedRoom}
+        onSelect={(a) => { setSelectedAgent(a); setSelectedRoom(null); setSidebarOpen(false); }}
+        onSelectRoom={handleSelectRoom}
         findDmRoom={findDmRoom}
         onSignOut={() => { clearStoredSession(); navigate("/login", { replace: true }); }}
         open={sidebarOpen}
         onReloadAgents={loadAgents}
         agentsLoading={agentsLoading}
         agentError={agentError}
+        onNewGroup={() => setShowNewGroupModal(true)}
+        groupRooms={groupRooms}
       />
       <main style={styles.main}>
         {selectedAgent ? (
@@ -139,6 +190,14 @@ export default function App() {
             agent={selectedAgent}
             room={findDmRoom(selectedAgent.userId)}
             onBack={() => { setSelectedAgent(null); setSidebarOpen(true); }}
+          />
+        ) : selectedRoom ? (
+          <Chat
+            client={client}
+            myUserId={userId}
+            agent={null}
+            room={selectedRoom}
+            onBack={() => { setSelectedRoom(null); setSidebarOpen(true); }}
           />
         ) : (
           <div style={styles.empty}>
@@ -159,15 +218,23 @@ export default function App() {
               </>
             ) : (
               <>
-                <p className="dim">Select an agent to start talking.</p>
+                <p className="dim">Select an agent or group to start talking.</p>
                 <p className="dim mono" style={{ fontSize: 11, marginTop: 8 }}>
-                  {agents.length} agents configured
+                  {agents.length} agents · {groupRooms.length} groups
                 </p>
               </>
             )}
           </div>
         )}
       </main>
+      {showNewGroupModal && (
+        <NewGroupModal
+          agents={agents}
+          myUserId={userId}
+          onClose={() => setShowNewGroupModal(false)}
+          onCreate={createGroup}
+        />
+      )}
     </div>
   );
 }

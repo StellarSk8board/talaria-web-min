@@ -7,7 +7,7 @@ import Compose from "./Compose";
 interface Props {
   client: MatrixClient;
   myUserId: string;
-  agent: Agent;
+  agent: Agent | null;
   room: Room | null;
   onBack: () => void;
 }
@@ -46,6 +46,7 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
 
   async function send(body: string) {
     if (!room) {
+      if (!agent) return; // Should not happen
       // No DM yet — create one and send.
       const r = await client.createRoom({
         invite: [agent.userId],
@@ -73,14 +74,28 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
         <button onClick={onBack} style={styles.desktopBack} className="desktop-only" aria-label="back to agents">
           ← Agents
         </button>
-        <div style={styles.avatar}>{agent.displayName.charAt(0).toUpperCase()}</div>
-        <div style={styles.headerMain}>
-          <div style={styles.headerName}>{agent.displayName}</div>
-          <div className="dim" style={styles.headerSub}>{agent.role}</div>
-        </div>
-        <div className="mono dim" style={styles.headerUserId} title={agent.userId}>
-          {agent.userId.replace(/^@/, "").split(":")[0]}@{agent.userId.split(":")[1]}
-        </div>
+        {agent ? (
+          <>
+            <div style={styles.avatar}>{agent.displayName.charAt(0).toUpperCase()}</div>
+            <div style={styles.headerMain}>
+              <div style={styles.headerName}>{agent.displayName}</div>
+              <div className="dim" style={styles.headerSub}>{agent.role}</div>
+            </div>
+            <div className="mono dim" style={styles.headerUserId} title={agent.userId}>
+              {agent.userId.replace(/^@/, "").split(":")[0]}@{agent.userId.split(":")[1]}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={styles.avatar}>#</div>
+            <div style={styles.headerMain}>
+              <div style={styles.headerName}>{room?.name || "Group Chat"}</div>
+              <div className="dim" style={styles.headerSub}>
+                {room?.getJoinedMemberCount() ?? 0} members
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div ref={scrollRef} style={styles.scroll}>
@@ -90,7 +105,9 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
             <p className="dim" style={{ fontSize: 12 }}>
               {room
                 ? "Send the first message."
-                : `No DM room with ${agent.displayName} yet — sending will create one.`}
+                : agent
+                  ? `No DM room with ${agent.displayName} yet — sending will create one.`
+                  : "No room selected."}
             </p>
           </div>
         ) : (
@@ -98,7 +115,7 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
         )}
       </div>
 
-      <Compose onSend={send} disabled={!room && false /* allow-create flow */} />
+      <Compose onSend={send} disabled={!room && !agent} />
     </div>
   );
 }
