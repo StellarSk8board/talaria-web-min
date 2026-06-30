@@ -79,6 +79,43 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
     }
   }
 
+  async function sendFile(file: File) {
+    const targetRoomId = room?.roomId;
+    let roomId = targetRoomId;
+
+    if (!roomId) {
+      if (!agent) return;
+      const r = await client.createRoom({
+        invite: [agent.userId],
+        is_direct: true,
+        preset: "trusted_private_chat" as any,
+      });
+      roomId = r.room_id;
+    }
+
+    // Upload the file
+    const response = await client.uploadContent(file, {
+      name: file.name,
+      type: file.type,
+    });
+    const content = response as any;
+
+    // Determine message type based on file type
+    const isImage = file.type.startsWith("image/");
+    const msgtype = isImage ? "m.image" : "m.file";
+
+    await client.sendMessage(roomId, {
+      msgtype: msgtype as any,
+      body: file.name,
+      filename: file.name,
+      url: content.content_uri,
+      info: {
+        mimetype: file.type,
+        size: file.size,
+      },
+    });
+  }
+
   async function uploadAndSendAudio(roomId: string, blob: Blob) {
     const file = new File([blob], "voice-message.webm", { type: "audio/webm" });
     const response = await client.uploadContent(file, {
@@ -147,7 +184,7 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
         )}
       </div>
 
-      <Compose onSend={send} onSendAudio={sendAudio} disabled={!room && !agent} />
+      <Compose onSend={send} onSendAudio={sendAudio} onSendFile={sendFile} disabled={!room && !agent} />
     </div>
   );
 }

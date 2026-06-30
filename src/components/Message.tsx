@@ -16,17 +16,28 @@ export default function Message({ event, myUserId }: Props) {
   // Render based on msgtype — text is the only one we care about for W7.
   const msgtype: string = content.msgtype ?? "m.text";
 
-  // For m.text, render inline markdown. For m.image, show a placeholder
-  // (full image support is W8). For m.audio, show a play button. For anything else, show msgtype tag.
+  // For m.text, render inline markdown. For m.image, show the image.
+  // For m.audio, show a play button. For m.file, show a download link.
+  // For anything else, show msgtype tag.
   let bodyNode: React.ReactNode;
   if (msgtype === "m.text") {
     bodyNode = renderInline(body);
   } else if (msgtype === "m.image") {
-    bodyNode = (
-      <span className="dim mono" style={{ fontSize: 12 }}>
-        [image: {content.filename ?? content.body ?? "?"}]
-      </span>
-    );
+    const url = content.url;
+    if (url) {
+      bodyNode = (
+        <div style={styles.imageWrap}>
+          <img src={url} alt={content.body ?? "image"} style={styles.image} />
+          {content.body && <span className="dim mono" style={{ fontSize: 11 }}>{content.body}</span>}
+        </div>
+      );
+    } else {
+      bodyNode = (
+        <span className="dim mono" style={{ fontSize: 12 }}>
+          [image: {content.filename ?? content.body ?? "?"}]
+        </span>
+      );
+    }
   } else if (msgtype === "m.audio") {
     const url = content.url;
     if (url) {
@@ -40,6 +51,22 @@ export default function Message({ event, myUserId }: Props) {
       bodyNode = (
         <span className="dim mono" style={{ fontSize: 12 }}>
           [audio: {content.body ?? "voice message"}]
+        </span>
+      );
+    }
+  } else if (msgtype === "m.file") {
+    const url = content.url;
+    const filename = content.filename ?? content.body ?? "file";
+    if (url) {
+      bodyNode = (
+        <a href={url} target="_blank" rel="noopener noreferrer" style={styles.fileLink}>
+          📄 {filename}
+        </a>
+      );
+    } else {
+      bodyNode = (
+        <span className="dim mono" style={{ fontSize: 12 }}>
+          [file: {filename}]
         </span>
       );
     }
@@ -115,5 +142,27 @@ const styles: Record<string, React.CSSProperties> = {
   audio: {
     maxWidth: "100%",
     height: 32,
+  },
+  imageWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  image: {
+    maxWidth: "100%",
+    maxHeight: 300,
+    borderRadius: 8,
+    objectFit: "contain",
+  },
+  fileLink: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    color: "var(--accent)",
+    textDecoration: "none",
+    padding: "4px 8px",
+    background: "var(--bg-3)",
+    borderRadius: 6,
+    fontSize: 13,
   },
 };
