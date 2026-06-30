@@ -17,7 +17,7 @@ export default function Message({ event, myUserId }: Props) {
   const msgtype: string = content.msgtype ?? "m.text";
 
   // For m.text, render inline markdown. For m.image, show a placeholder
-  // (full image support is W8). For anything else, show msgtype tag.
+  // (full image support is W8). For m.audio, show a play button. For anything else, show msgtype tag.
   let bodyNode: React.ReactNode;
   if (msgtype === "m.text") {
     bodyNode = renderInline(body);
@@ -27,6 +27,22 @@ export default function Message({ event, myUserId }: Props) {
         [image: {content.filename ?? content.body ?? "?"}]
       </span>
     );
+  } else if (msgtype === "m.audio") {
+    const url = content.url;
+    if (url) {
+      bodyNode = (
+        <div style={styles.audioWrap}>
+          <audio controls src={url} style={styles.audio} />
+          <span className="dim mono" style={{ fontSize: 11 }}>Voice message</span>
+        </div>
+      );
+    } else {
+      bodyNode = (
+        <span className="dim mono" style={{ fontSize: 12 }}>
+          [audio: {content.body ?? "voice message"}]
+        </span>
+      );
+    }
   } else {
     bodyNode = <span className="dim mono">[{msgtype}]</span>;
   }
@@ -90,5 +106,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 10,
     marginTop: 4,
     textAlign: "right",
+  },
+  audioWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  audio: {
+    maxWidth: "100%",
+    height: 32,
   },
 };
