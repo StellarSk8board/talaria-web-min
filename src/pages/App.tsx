@@ -5,6 +5,7 @@ import { fetchAgents, type Agent } from "../matrix/agents";
 import { getVerifyStatus, type VerifyStatus } from "../matrix/verify";
 import { useUnreadCounts } from "../matrix/unread";
 import { useKeyboardShortcuts } from "../matrix/shortcuts";
+import { SyncRecovery } from "../matrix/sync-recovery";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import Sidebar from "../components/Sidebar";
 import Chat from "../components/Chat";
@@ -28,6 +29,7 @@ export default function App() {
   const [showVerification, setShowVerification] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>("unknown");
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<string>("Connected");
 
   // Track unread message counts
   const unreadCounts = useUnreadCounts(client, Array.from(rooms.values()));
@@ -105,6 +107,9 @@ export default function App() {
       .then(() => {
         if (cancelled) return;
         setClient(restored.client);
+
+        // Initialize sync recovery for connection monitoring
+        new SyncRecovery(restored.client, setConnectionStatus);
 
         // Check verification status
         getVerifyStatus(restored.client).then(setVerifyStatus);
@@ -220,6 +225,11 @@ export default function App() {
 
   return (
     <div style={styles.shell}>
+      {connectionStatus !== "Connected" && (
+        <div style={styles.connectionBanner}>
+          {connectionStatus}
+        </div>
+      )}
       <Sidebar
         agents={agents}
         rooms={rooms}
@@ -348,5 +358,18 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid var(--danger)",
     borderRadius: 8,
     padding: 20,
+  },
+  connectionBanner: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    background: "var(--warning)",
+    color: "var(--bg-0)",
+    padding: "8px 16px",
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: 600,
+    zIndex: 1000,
   },
 };
