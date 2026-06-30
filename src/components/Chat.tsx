@@ -4,6 +4,7 @@ import { type Agent } from "../matrix/agents";
 import Message from "./Message";
 import Compose from "./Compose";
 import TypingIndicator from "./TypingIndicator";
+import RoomSettingsModal from "./RoomSettingsModal";
 import { usePresence } from "../matrix/presence";
 
 interface Props {
@@ -18,6 +19,7 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
   const [events, setEvents] = useState<MatrixEvent[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const presence = usePresence(client, room);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Refresh timeline when room changes.
   useEffect(() => {
@@ -172,6 +174,15 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
                 {room?.getJoinedMemberCount() ?? 0} members
               </div>
             </div>
+            {room && (
+              <button
+                onClick={() => setShowSettings(true)}
+                style={styles.settingsBtn}
+                title="Room settings"
+              >
+                ⚙️
+              </button>
+            )}
           </>
         )}
       </div>
@@ -203,6 +214,15 @@ export default function Chat({ client, myUserId, agent, room, onBack }: Props) {
         client={client}
         roomId={room?.roomId}
       />
+
+      {showSettings && room && (
+        <RoomSettingsModal
+          client={client}
+          room={room}
+          userId={myUserId}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </div>
   );
 }
@@ -270,6 +290,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerUserId: {
     fontSize: 11,
+  },
+  settingsBtn: {
+    background: "transparent",
+    border: "none",
+    fontSize: 20,
+    cursor: "pointer",
+    padding: 4,
+    opacity: 0.7,
+    transition: "opacity 0.2s",
   },
   scroll: {
     flex: 1,
