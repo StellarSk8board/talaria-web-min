@@ -8,6 +8,7 @@ import {
   getRoomMembers,
   canEditRoom,
 } from "../matrix/room-settings";
+import { isRoomMuted, toggleRoomMute } from "../matrix/notifications";
 
 interface Props {
   client: MatrixClient;
@@ -23,6 +24,7 @@ export default function RoomSettingsModal({ client, room, userId, onClose }: Pro
   const [inviteUserId, setInviteUserId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(isRoomMuted(room.roomId));
 
   const canEdit = canEditRoom(room, userId);
 
@@ -30,6 +32,11 @@ export default function RoomSettingsModal({ client, room, userId, onClose }: Pro
     // Refresh members when room changes
     setMembers(getRoomMembers(room));
   }, [room]);
+
+  const handleToggleMute = () => {
+    const nowMuted = toggleRoomMute(room.roomId);
+    setIsMuted(nowMuted);
+  };
 
   const handleSaveName = async () => {
     if (!canEdit) return;
@@ -129,6 +136,21 @@ export default function RoomSettingsModal({ client, room, userId, onClose }: Pro
                   Save
                 </button>
               )}
+            </div>
+          </div>
+
+          <div style={styles.section}>
+            <label style={styles.label}>Notification Preferences</label>
+            <div style={styles.muteRow}>
+              <button
+                onClick={handleToggleMute}
+                style={isMuted ? styles.muteBtnActive : styles.muteBtn}
+              >
+                {isMuted ? "🔇 Muted" : "🔔 Notifications On"}
+              </button>
+              <span style={styles.muteHint}>
+                {isMuted ? "You won't receive notifications for this room" : "You'll receive notifications for this room"}
+              </span>
             </div>
           </div>
 
@@ -303,5 +325,32 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--danger)",
     fontSize: 12,
     cursor: "pointer",
+  },
+  muteRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  muteBtn: {
+    padding: "8px 16px",
+    borderRadius: 4,
+    border: "1px solid var(--border)",
+    background: "var(--bg-2)",
+    color: "var(--text-0)",
+    fontSize: 13,
+    cursor: "pointer",
+  },
+  muteBtnActive: {
+    padding: "8px 16px",
+    borderRadius: 4,
+    border: "1px solid var(--accent)",
+    background: "var(--accent)",
+    color: "white",
+    fontSize: 13,
+    cursor: "pointer",
+  },
+  muteHint: {
+    fontSize: 12,
+    color: "var(--text-2)",
   },
 };
