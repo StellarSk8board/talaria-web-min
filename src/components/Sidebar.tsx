@@ -1,5 +1,6 @@
 import { type Agent } from "../matrix/agents";
 import { type Room } from "matrix-js-sdk";
+import { type VerifyStatus } from "../matrix/verify";
 
 interface Props {
   agents: Agent[];
@@ -17,11 +18,13 @@ interface Props {
   agentError: string | null;
   onNewGroup: () => void;
   groupRooms: Room[];
+  verifyStatus: VerifyStatus;
+  onShowVerification: () => void;
 }
 
 export default function Sidebar({
   agents, rooms, myUserId, selectedAgent, selectedRoom, onSelect, onSelectRoom, findDmRoom, onSignOut, open,
-  onReloadAgents, agentsLoading, agentError, onNewGroup, groupRooms,
+  onReloadAgents, agentsLoading, agentError, onNewGroup, groupRooms, verifyStatus, onShowVerification,
 }: Props) {
   return (
     <aside style={{ ...styles.aside, transform: open ? "translateX(0)" : "translateX(-100%)" }}>
@@ -131,6 +134,18 @@ export default function Sidebar({
           )}
         </div>
         <div style={styles.footerRight}>
+          <button
+            onClick={onShowVerification}
+            style={{
+              fontSize: 11,
+              padding: "4px 8px",
+              color: verifyStatus === "verified" ? "var(--success, #4caf50)" :
+                     verifyStatus === "unverified" ? "var(--warning, #ff9800)" : "var(--text-2)",
+            }}
+            title={`Verification: ${verifyStatus}`}
+          >
+            {verifyStatus === "verified" ? "✓" : verifyStatus === "unverified" ? "!" : "?"}
+          </button>
           <button
             onClick={onReloadAgents}
             disabled={agentsLoading}

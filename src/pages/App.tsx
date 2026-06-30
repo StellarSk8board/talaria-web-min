@@ -2,10 +2,12 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { restoreSession, startClient, clearStoredSession } from "../matrix/client";
 import { fetchAgents, type Agent } from "../matrix/agents";
+import { getVerifyStatus, type VerifyStatus } from "../matrix/verify";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import Sidebar from "../components/Sidebar";
 import Chat from "../components/Chat";
 import NewGroupModal from "../components/NewGroupModal";
+import Verification from "../components/Verification";
 
 export default function App() {
   const navigate = useNavigate();
@@ -20,6 +22,8 @@ export default function App() {
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [agentError, setAgentError] = useState<string | null>(null);
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>("unknown");
 
   // ---- load agents (can be called again for retry/reload) ----
   const loadAgents = useCallback(() => {
@@ -53,6 +57,9 @@ export default function App() {
       .then(() => {
         if (cancelled) return;
         setClient(restored.client);
+
+        // Check verification status
+        getVerifyStatus(restored.client).then(setVerifyStatus);
 
         // Snapshot current rooms.
         const map = new Map<string, Room>();
@@ -181,6 +188,8 @@ export default function App() {
         agentError={agentError}
         onNewGroup={() => setShowNewGroupModal(true)}
         groupRooms={groupRooms}
+        verifyStatus={verifyStatus}
+        onShowVerification={() => setShowVerification(true)}
       />
       <main style={styles.main}>
         {selectedAgent ? (
@@ -233,6 +242,12 @@ export default function App() {
           myUserId={userId}
           onClose={() => setShowNewGroupModal(false)}
           onCreate={createGroup}
+        />
+      )}
+      {showVerification && client && (
+        <Verification
+          client={client}
+          onClose={() => setShowVerification(false)}
         />
       )}
     </div>
