@@ -10,6 +10,16 @@ export default defineConfig({
     port: 5173,
     host: "127.0.0.1",
     strictPort: true,
+    proxy: {
+      "/_matrix": {
+        target: "http://100.115.98.81:8008",
+        changeOrigin: true,
+      },
+      "/_synapse": {
+        target: "http://100.115.98.81:8008",
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     rollupOptions: {

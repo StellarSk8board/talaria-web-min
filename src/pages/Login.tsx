@@ -4,7 +4,9 @@ import { login, getStoredHomeserver, clearStoredSession } from "../matrix/client
 
 export default function Login() {
   const navigate = useNavigate();
-  const [homeserver, setHomeserver] = useState(getStoredHomeserver() ?? "http://100.115.98.81:8008");
+  const [homeserver, setHomeserver] = useState(
+    getStoredHomeserver() ?? (import.meta.env.DEV ? window.location.origin : "http://100.115.98.81:8008")
+  );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
