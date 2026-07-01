@@ -20,12 +20,13 @@ interface Props {
   groupRooms: Room[];
   verifyStatus: VerifyStatus;
   onShowVerification: () => void;
+  onShowSecurity: () => void;
   unreadCounts: Record<string, number>;
 }
 
 export default function Sidebar({
   agents, rooms, myUserId, selectedAgent, selectedRoom, onSelect, onSelectRoom, findDmRoom, onSignOut, open,
-  onReloadAgents, agentsLoading, agentError, onNewGroup, groupRooms, verifyStatus, onShowVerification, unreadCounts,
+  onReloadAgents, agentsLoading, agentError, onNewGroup, groupRooms, verifyStatus, onShowVerification, onShowSecurity, unreadCounts,
 }: Props) {
   return (
     <aside style={{ ...styles.aside, transform: open ? "translateX(0)" : "translateX(-100%)" }}>
@@ -150,6 +151,13 @@ export default function Sidebar({
             title={`Verification: ${verifyStatus}`}
           >
             {verifyStatus === "verified" ? "✓" : verifyStatus === "unverified" ? "!" : "?"}
+          </button>
+          <button
+            onClick={onShowSecurity}
+            style={{ fontSize: 11, padding: "4px 8px" }}
+            title="Security & Recovery"
+          >
+            🔐
           </button>
           <button
             onClick={onReloadAgents}
@@ -285,7 +293,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 6,
     flexShrink: 0,
   },
-  newGroup_btn: {
+  newGroupBtn: {
     background: "transparent",
     border: "1px solid var(--border)",
     color: "var(--text-1)",

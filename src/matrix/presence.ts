@@ -58,12 +58,10 @@ export function usePresence(client: MatrixClient, room: Room | null): PresenceSt
       setPresence((prev) => ({ ...prev, [userId]: status }));
     };
 
-    client.on("RoomMember.powerLevel" as any, updatePresence as any);
-    client.on("RoomMember.membership" as any, updatePresence as any);
+    client.on("RoomMember.presence" as any, updatePresence as any);
 
     return () => {
-      client.off("RoomMember.powerLevel" as any, updatePresence as any);
-      client.off("RoomMember.membership" as any, updatePresence as any);
+      client.off("RoomMember.presence" as any, updatePresence as any);
     };
   }, [client, room]);
 

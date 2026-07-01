@@ -50,20 +50,12 @@ export function useUnreadCounts(client: MatrixClient | null, rooms: Room[]): Unr
 
 /**
  * Get unread count for a room.
+ * Uses the SDK's built-in notification count which tracks read receipts.
  */
-function getUnreadCount(room: Room, client: MatrixClient): number {
-  const timeline = room.getLiveTimeline();
-  const events = timeline.getEvents();
-  const myUserId = client.getUserId();
-
-  let count = 0;
-  for (const event of events) {
-    if (event.getSender() !== myUserId && event.getType() === "m.room.message") {
-      count++;
-    }
-  }
-
-  return count;
+function getUnreadCount(room: Room, _client: MatrixClient): number {
+  // matrix-js-sdk tracks unread notification count internally
+  // based on read receipts. This is the correct way to get unread counts.
+  return room.getUnreadNotificationCount();
 }
 
 /**

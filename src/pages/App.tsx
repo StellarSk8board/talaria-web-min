@@ -12,6 +12,7 @@ import Chat from "../components/Chat";
 import NewGroupModal from "../components/NewGroupModal";
 import Verification from "../components/Verification";
 import SearchModal from "../components/SearchModal";
+import SecuritySettings from "../components/SecuritySettings";
 
 export default function App() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function App() {
   const [showVerification, setShowVerification] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>("unknown");
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>("Connected");
 
   // Track unread message counts
@@ -248,6 +250,7 @@ export default function App() {
         groupRooms={groupRooms}
         verifyStatus={verifyStatus}
         onShowVerification={() => setShowVerification(true)}
+        onShowSecurity={() => setShowSecurity(true)}
         unreadCounts={unreadCounts}
       />
       <main style={styles.main}>
@@ -318,6 +321,12 @@ export default function App() {
             setSidebarOpen(false);
           }}
           onClose={() => setShowSearchModal(false)}
+        />
+      )}
+      {showSecurity && client && (
+        <SecuritySettings
+          client={client}
+          onClose={() => setShowSecurity(false)}
         />
       )}
     </div>
